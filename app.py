@@ -5,13 +5,7 @@ from difflib import SequenceMatcher
 
 app = Flask(__name__)
 
-# Your custom RSS.app feeds — consistent and clean
-FEEDS = {
-    "HipHopDX": "https://rss.app/feeds/eCqHOU",
-    "HotNewHipHop": "https://rss.app/feeds/djGy2mHPHkT91LkJ",
-    "AllHipHop": "https://rss.app/feeds/w8ZsiGlEvR3bZ1Yp",
-    "Rap-Up": "https://rss.app/feeds/HxkB0zOj3RM1fXLh"
-}
+RSS_FEED_URL = "https://rss.app/feeds/_wiboBlEdvNBsV9vh.xml"
 
 def fetch_article_text(url):
     try:
@@ -31,26 +25,24 @@ def index():
     entries = []
     seen = []
 
-    for name, url in FEEDS.items():
-        feed = feedparser.parse(url)
-        for item in feed.entries:
-            title = item.get("title", "").strip()
-            link = item.get("link", "").strip()
-            if not title or not link:
-                continue
-            # Deduplicate based on similar titles
-            if any(similar(title, s["title"]) > 0.9 for s in seen):
-                continue
-            summary = fetch_article_text(link)
-            if summary:
-                seen.append({"title": title})
-                entries.append({
-                    "title": title,
-                    "link": link,
-                    "source": name,
-                    "published": item.get("published", "No date"),
-                    "summary": summary
-                })
+    feed = feedparser.parse(RSS_FEED_URL)
+    for item in feed.entries:
+        title = item.get("title", "").strip()
+        link = item.get("link", "").strip()
+        if not title or not link:
+            continue
+        if any(similar(title, s["title"]) > 0.9 for s in seen):
+            continue
+        summary = fetch_article_text(link)
+        if summary:
+            seen.append({"title": title})
+            entries.append({
+                "title": title,
+                "link": link,
+                "source": "Media Feed",
+                "published": item.get("published", "No date"),
+                "summary": summary
+            })
 
     entries.sort(key=lambda x: x["published"], reverse=True)
     return render_template("index.html", entries=entries)
