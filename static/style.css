@@ -1,1 +1,45 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #111;
+    color: white;
+    padding: 20px;
+    margin: 0;
+}
 
+.container {
+    max-width: 800px;
+    margin: auto;
+}
+
+h1 {
+    text-align: center;
+}
+
+form {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.news-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.news-card {
+    padding: 15px;
+    background-color: #222;
+    border-radius: 8px;
+}
+
+.news-card a {
+    color: #1db954;
+    text-decoration: none;
+    font-size: 1.1em;
+}
+
+.news-card .meta {
+    font-size: 0.85em;
+    color: #aaa;
+    margin-top: 5px;
+}
