@@ -1,1 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hip-Hop News Aggregator</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Hip-Hop News Aggregator</h1>
 
+        <form method="get">
+            <label for="source">Filter by source:</label>
+            <select name="source" id="source" onchange="this.form.submit()">
+                <option value="">All Sources</option>
+                {% for name in sources %}
+                <option value="{{ name }}" {% if selected == name %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+        </form>
+
+        <div class="news-list">
+            {% for entry in entries %}
+            <div class="news-card">
+                <h3><a href="{{ entry.link }}" target="_blank">{{ entry.title }}</a></h3>
+                <p class="meta">{{ entry.source }} — {{ entry.published }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
