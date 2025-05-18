@@ -4,7 +4,6 @@ import os
 import feedparser
 import requests
 from newspaper import Article
-from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 import time
 import re
@@ -14,7 +13,6 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 
-# Environment Variables
 openai.api_key = os.getenv("OPENAI_API_KEY")
 RSS_FEED = os.getenv("RSS_FEED")
 WP_URL = os.getenv("WP_URL")
@@ -31,7 +29,6 @@ def call_openai_rewrite(text):
             "Do not use first-person language. Do not reference the original article or source.\n\n"
             f"Article:\n{text.strip()}"
         )
-
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             temperature=0.7,
@@ -42,23 +39,22 @@ def call_openai_rewrite(text):
     except Exception as e:
         return f"Failed to rewrite: {e}"
 
-def rewrite_article(url, title):
+def rewrite_article_from_url(url):
     try:
-        if "a timeline of" in title.lower():
-            return None
-
         article = Article(url)
         article.download()
         article.parse()
-
         raw_text = article.text.strip()
-        if not raw_text or len(raw_text.split()) < 100:
+
+        if not raw_text or len(raw_text.split()) < 50:
+            print(f"[SKIPPED - Too short] {url}")
             return None
 
-        return call_openai_rewrite(raw_text)
-
+        rewritten = call_openai_rewrite(raw_text)
+        return rewritten
     except Exception as e:
-        return f"Failed to fetch article: {e}"
+        print(f"[ERROR scraping] {url} — {e}")
+        return None
 
 def to_title_case(text):
     return re.sub(r"[A-Za-z]+('[A-Za-z]+)?",
@@ -87,16 +83,16 @@ def home():
         if "a timeline of" in entry.title.lower() or "tmz.com" in entry.link:
             continue
 
-        rewritten = rewrite_article(entry.link, entry.title)
-        if not rewritten or "Failed" in rewritten:
-            continue
-
         clean_title = to_title_case(entry.title.strip())
         slug = clean_title.lower()
 
         if slug in seen_titles:
             continue
         seen_titles.add(slug)
+
+        rewritten = rewrite_article_from_url(entry.link)
+        if not rewritten:
+            continue
 
         source_link = f'<div class="source-link"><a href="{entry.link}" target="_blank">Original Source</a></div>'
         rewritten_with_source = rewritten + "\n\n" + source_link
@@ -113,10 +109,10 @@ def home():
 def article():
     url = request.args.get('url')
     title = request.args.get('title')
-    rewritten = rewrite_article(url, title)
+    rewritten = rewrite_article_from_url(url)
 
     add_citation = False
-    if any(word in rewritten.lower() for word in ["interview", "said", "spoke with", "told", "discussed"]):
+    if rewritten and any(word in rewritten.lower() for word in ["interview", "said", "spoke with", "told", "discussed"]):
         add_citation = True
 
     if add_citation:
@@ -134,7 +130,7 @@ def publish():
     title = request.form.get('title')
     content = request.form.get('content')
 
-    # Strip internal-only lines
+    # Remove internal-only content
     content = re.sub(r'<div class="source-link">.*?</div>', '', content, flags=re.DOTALL)
     content = re.sub(r'\*As reported by.*?\*', '', content)
 
@@ -143,10 +139,7 @@ def publish():
     data = {'title': title, 'content': content.strip(), 'status': 'draft'}
 
     res = requests.post(wp_api, auth=auth, json=data)
-    if res.status_code == 201:
-        return "Draft pushed to WordPress!"
-    else:
-        return f"Failed: {res.status_code} — {res.text}"
+    return "Draft pushed to WordPress!" if res.status_code == 201 else f"Failed: {res.status_code} — {res.text}"
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
