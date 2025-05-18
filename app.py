@@ -13,7 +13,7 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 
-# Environment variables
+# Load environment variables
 RSS_FEED = os.getenv("RSS_FEED")
 WP_URL = os.getenv("WP_URL")
 WP_USERNAME = os.getenv("WP_USERNAME")
@@ -23,7 +23,6 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
 def rewrite_article(url, title):
     try:
-        # Reject editorial timelines
         if "a timeline of" in title.lower():
             return None
 
@@ -35,10 +34,6 @@ def rewrite_article(url, title):
         if not text:
             return "Failed to extract article text."
 
-        # Detect if it's likely an interview
-        is_interview = any(keyword in text.lower() for keyword in ['interview', "said", "spoke with", "told", "discussed"])
-
-        # Clean and split text into sentences
         soup = BeautifulSoup(text, "html.parser")
         cleaned_text = soup.get_text()
         sentences = re.split(r'(?<=[.!?])\s+', cleaned_text.strip())
@@ -49,6 +44,8 @@ def rewrite_article(url, title):
         max_words = 300
 
         for sentence in sentences:
+            if "..." in sentence:
+                continue  # remove awkward original transitions
             words_in_sentence = len(sentence.split())
             word_count += words_in_sentence
             para.append(sentence)
@@ -63,12 +60,7 @@ def rewrite_article(url, title):
         if para and word_count < max_words:
             paragraphs.append(' '.join(para))
 
-        # Join final result with paragraph spacing
         formatted = '\n\n'.join(paragraphs)
-
-        # Add internal-only citation (not pushed to WP)
-        formatted += f"\n\n[Original Source: {url}]"
-
         return formatted
 
     except Exception as e:
@@ -81,6 +73,7 @@ def home():
 
     now = datetime.utcnow()
     cutoff = now - timedelta(days=1)
+    tmz_count = 0
 
     for entry in feed.entries:
         if hasattr(entry, 'published_parsed'):
@@ -91,9 +84,27 @@ def home():
         if "a timeline of" in entry.title.lower():
             continue
 
+        if "tmz.com" in entry.link:
+            tmz_count += 1
+            if tmz_count > 2:
+                continue
+
         rewritten = rewrite_article(entry.link, entry.title)
         if not rewritten or "Failed" in rewritten:
             continue
+
+        # Attribution for TMZ or likely interviews
+        add_citation = False
+        if "tmz.com" in entry.link:
+            add_citation = True
+        elif any(word in rewritten.lower() for word in ["interview", "said", "spoke with", "told", "discussed"]):
+            add_citation = True
+
+        if add_citation:
+            domain_match = re.findall(r"https?://(?:www\.)?([^/]+)", entry.link)
+            if domain_match:
+                domain = domain_match[0].replace("www.", "")
+                rewritten += f"\n\n*As reported by <a href=\"{entry.link}\">{domain}</a>.*"
 
         stories.append({
             'title': entry.title,
@@ -108,6 +119,19 @@ def article():
     url = request.args.get('url')
     title = request.args.get('title')
     rewritten = rewrite_article(url, title)
+
+    # Internal-only citation for TMZ or interview content
+    add_citation = False
+    if "tmz.com" in url:
+        add_citation = True
+    elif any(word in rewritten.lower() for word in ["interview", "said", "spoke with", "told", "discussed"]):
+        add_citation = True
+
+    if add_citation:
+        domain_match = re.findall(r"https?://(?:www\.)?([^/]+)", url)
+        if domain_match:
+            rewritten += f"\n\n*As reported by <a href=\"{url}\">{domain_match[0]}</a>.*"
+
     return render_template('article.html', title=title, content=rewritten)
 
 @app.route('/publish', methods=['POST'])
