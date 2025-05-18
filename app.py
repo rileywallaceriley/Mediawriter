@@ -13,7 +13,7 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 RSS_FEED = os.getenv("RSS_FEED")
 WP_URL = os.getenv("WP_URL")
 WP_USERNAME = os.getenv("WP_USERNAME")
@@ -21,25 +21,47 @@ WP_APP_PASSWORD = os.getenv("WP_APP_PASSWORD")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
-def call_openai_rewrite(text):
+def rewrite_with_openai(full_text, title):
     try:
-        prompt = (
-            "Rewrite the following news article in third-person AP style. "
-            "Make it no more than 300 words. Break into readable short paragraphs. "
-            "Do not use first-person language. Do not reference the original article or source.\n\n"
-            f"Article:\n{text.strip()}"
-        )
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            temperature=0.7,
-            max_tokens=750,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return response['choices'][0]['message']['content'].strip()
-    except Exception as e:
-        return f"Failed to rewrite: {e}"
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"""Rewrite this news article in AP style.
+Rewrite the title as a punchy, professional headline.
+Return your output in the following format:
 
-def rewrite_article_from_url(url):
+---
+TITLE: <Rewritten Title>
+---
+CONTENT:
+<Rewritten body here, under 300 words, in short readable paragraphs.>
+
+Do not reference the original article or use first-person language.
+
+Title: {title}
+Body:
+{full_text.strip()}
+"""
+                }
+            ],
+            temperature=0.7,
+            max_tokens=800
+        )
+
+        content = response.choices[0].message.content.strip()
+        title_match = re.search(r'TITLE:\s*(.*)', content)
+        body_match = re.search(r'CONTENT:\s*(.*)', content, re.DOTALL)
+        new_title = title_match.group(1).strip() if title_match else title
+        new_body = body_match.group(1).strip() if body_match else full_text
+        return new_title, new_body
+
+    except Exception as e:
+        print(f"[OpenAI Error] {e}")
+        return title, f"Failed to rewrite: {e}"
+
+def rewrite_article_from_url(url, original_title):
     try:
         article = Article(url)
         article.download()
@@ -48,18 +70,13 @@ def rewrite_article_from_url(url):
 
         if not raw_text or len(raw_text.split()) < 50:
             print(f"[SKIPPED - Too short] {url}")
-            return None
+            return original_title, None
 
-        rewritten = call_openai_rewrite(raw_text)
-        return rewritten
+        return rewrite_with_openai(raw_text, original_title)
+
     except Exception as e:
         print(f"[ERROR scraping] {url} — {e}")
-        return None
-
-def to_title_case(text):
-    return re.sub(r"[A-Za-z]+('[A-Za-z]+)?",
-                  lambda match: match.group(0)[0].upper() + match.group(0)[1:].lower(),
-                  text)
+        return original_title, None
 
 @app.route('/')
 def home():
@@ -83,14 +100,14 @@ def home():
         if "a timeline of" in entry.title.lower() or "tmz.com" in entry.link:
             continue
 
-        clean_title = to_title_case(entry.title.strip())
-        slug = clean_title.lower()
+        original_title = entry.title.strip()
+        slug = original_title.lower()
 
         if slug in seen_titles:
             continue
         seen_titles.add(slug)
 
-        rewritten = rewrite_article_from_url(entry.link)
+        new_title, rewritten = rewrite_article_from_url(entry.link, original_title)
         if not rewritten:
             continue
 
@@ -98,9 +115,9 @@ def home():
         rewritten_with_source = rewritten + "\n\n" + source_link
 
         stories.append({
-            'title': clean_title,
+            'title': new_title,
             'summary': rewritten_with_source,
-            'link': f'/article?url={entry.link}&title={clean_title}'
+            'link': f'/article?url={entry.link}&title={new_title}'
         })
 
     return render_template('index.html', stories=stories)
@@ -109,10 +126,13 @@ def home():
 def article():
     url = request.args.get('url')
     title = request.args.get('title')
-    rewritten = rewrite_article_from_url(url)
+    new_title, rewritten = rewrite_article_from_url(url, title)
+
+    if not rewritten:
+        rewritten = "Failed to load article."
 
     add_citation = False
-    if rewritten and any(word in rewritten.lower() for word in ["interview", "said", "spoke with", "told", "discussed"]):
+    if any(word in rewritten.lower() for word in ["interview", "said", "spoke with", "told", "discussed"]):
         add_citation = True
 
     if add_citation:
@@ -120,7 +140,7 @@ def article():
         if domain_match:
             rewritten += f"\n\n*As reported by <a href=\"{url}\">{domain_match[0]}</a>.*"
 
-    return render_template('article.html', title=title, content=rewritten)
+    return render_template('article.html', title=new_title, content=rewritten)
 
 @app.route('/publish', methods=['POST'])
 def publish():
@@ -130,7 +150,6 @@ def publish():
     title = request.form.get('title')
     content = request.form.get('content')
 
-    # Remove internal-only content
     content = re.sub(r'<div class="source-link">.*?</div>', '', content, flags=re.DOTALL)
     content = re.sub(r'\*As reported by.*?\*', '', content)
 
