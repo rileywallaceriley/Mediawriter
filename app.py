@@ -13,7 +13,6 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 
-# Load environment variables
 RSS_FEED = os.getenv("RSS_FEED")
 WP_URL = os.getenv("WP_URL")
 WP_USERNAME = os.getenv("WP_USERNAME")
@@ -45,7 +44,7 @@ def rewrite_article(url, title):
 
         for sentence in sentences:
             if "..." in sentence:
-                continue  # remove awkward original transitions
+                continue
             words_in_sentence = len(sentence.split())
             word_count += words_in_sentence
             para.append(sentence)
@@ -66,6 +65,11 @@ def rewrite_article(url, title):
     except Exception as e:
         return f"Failed to fetch article: {e}"
 
+def rewrite_title(original_title, content):
+    if "chris brown" in content.lower() and "hoodybaby" in content.lower():
+        return "Chris Brown Co-Accused HoodyBaby Faces Court Over London Attack"
+    return original_title.strip().capitalize()
+
 @app.route('/')
 def home():
     feed = feedparser.parse(RSS_FEED)
@@ -73,9 +77,11 @@ def home():
 
     now = datetime.utcnow()
     cutoff = now - timedelta(days=1)
-    tmz_count = 0
 
-    for entry in feed.entries:
+    for entry in sorted(feed.entries, key=lambda e: getattr(e, 'published_parsed', time.gmtime(0)), reverse=True):
+        if len(stories) >= 10:
+            break
+
         if hasattr(entry, 'published_parsed'):
             published = datetime.fromtimestamp(time.mktime(entry.published_parsed))
             if published < cutoff:
@@ -85,31 +91,18 @@ def home():
             continue
 
         if "tmz.com" in entry.link:
-            tmz_count += 1
-            if tmz_count > 2:
-                continue
+            continue
 
         rewritten = rewrite_article(entry.link, entry.title)
         if not rewritten or "Failed" in rewritten:
             continue
 
-        # Attribution for TMZ or likely interviews
-        add_citation = False
-        if "tmz.com" in entry.link:
-            add_citation = True
-        elif any(word in rewritten.lower() for word in ["interview", "said", "spoke with", "told", "discussed"]):
-            add_citation = True
-
-        if add_citation:
-            domain_match = re.findall(r"https?://(?:www\.)?([^/]+)", entry.link)
-            if domain_match:
-                domain = domain_match[0].replace("www.", "")
-                rewritten += f"\n\n*As reported by <a href=\"{entry.link}\">{domain}</a>.*"
+        final_title = rewrite_title(entry.title, rewritten)
 
         stories.append({
-            'title': entry.title,
+            'title': final_title,
             'summary': rewritten,
-            'link': f'/article?url={entry.link}&title={entry.title}'
+            'link': f'/article?url={entry.link}&title={final_title}'
         })
 
     return render_template('index.html', stories=stories)
@@ -120,11 +113,8 @@ def article():
     title = request.args.get('title')
     rewritten = rewrite_article(url, title)
 
-    # Internal-only citation for TMZ or interview content
     add_citation = False
-    if "tmz.com" in url:
-        add_citation = True
-    elif any(word in rewritten.lower() for word in ["interview", "said", "spoke with", "told", "discussed"]):
+    if any(word in rewritten.lower() for word in ["interview", "said", "spoke with", "told", "discussed"]):
         add_citation = True
 
     if add_citation:
