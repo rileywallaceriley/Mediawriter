@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, flash, url_for
+from flask import Flask, render_template, request, redirect, session, flash
 from dotenv import load_dotenv
 import feedparser
 import requests
@@ -6,9 +6,8 @@ import os
 
 load_dotenv()
 app = Flask(__name__)
-
-# Env config
 app.secret_key = os.getenv("SECRET_KEY")
+
 RSS_FEED = os.getenv("RSS_FEED")
 WP_URL = os.getenv("WP_URL")
 WP_USERNAME = os.getenv("WP_USERNAME")

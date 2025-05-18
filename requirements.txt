@@ -1,5 +1,5 @@
-Flask
-feedparser
-gunicorn
-newspaper3k
-lxml[html_clean]
+Flask==3.1.1
+feedparser==6.0.11
+requests==2.32.3
+python-dotenv==1.0.1
+gunicorn==23.0.0
