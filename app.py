@@ -80,4 +80,8 @@ def login():
 @app.route('/logout')
 def logout():
     session.clear()
+    
+@app.route('/healthz')
+def healthz():
+    return 'ok', 200
     return redirect('/')
