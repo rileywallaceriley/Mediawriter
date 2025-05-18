@@ -1,8 +1,9 @@
 from flask import Flask, render_template, request, redirect, session, flash
 from dotenv import load_dotenv
+import os
 import feedparser
 import requests
-import os
+from newspaper import Article
 
 load_dotenv()
 app = Flask(__name__)
@@ -16,7 +17,15 @@ ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
 def rewrite_article(url):
-    return f"This is a rewritten version of the article at {url}. Unique, clean, and ready to post."
+    try:
+        article = Article(url)
+        article.download()
+        article.parse()
+        text = article.text
+        summary = ' '.join(text.split()[:300])
+        return summary + "..."
+    except Exception as e:
+        return f"Failed to fetch article: {e}"
 
 @app.route('/')
 def home():
@@ -26,7 +35,7 @@ def home():
         rewritten = rewrite_article(entry.link)
         stories.append({
             'title': entry.title,
-            'summary': rewritten[:250] + '...',
+            'summary': rewritten,
             'link': f'/article?url={entry.link}&title={entry.title}'
         })
     return render_template('index.html', stories=stories)
