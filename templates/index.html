@@ -18,15 +18,22 @@
   </header>
 
   <div class="story-feed">
-    {% for story in stories %}
-    <div class="story-card">
-      <div class="story-title">{{ story.title }}</div>
-      <div class="story-summary">{{ story.summary }}</div>
-      <a href="{{ story.link }}">
-        <button class="read-button">READ FULL STORY</button>
-      </a>
-    </div>
-    {% endfor %}
+    {% if stories %}
+      {% for story in stories %}
+        <div class="story-card">
+          <div class="story-title">{{ story.title }}</div>
+          <div class="story-summary">{{ story.summary }}</div>
+          <a href="{{ story.link }}">
+            <button class="read-button">READ FULL STORY</button>
+          </a>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="story-card">
+        <div class="story-title">No stories found</div>
+        <div class="story-summary">Check your RSS feed or rewrite logic. This is a fallback post.</div>
+      </div>
+    {% endif %}
   </div>
 </body>
 </html>
