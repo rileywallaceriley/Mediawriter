@@ -23,7 +23,7 @@ h1 {
   padding-right: 20px;
 }
 .story-feed {
-  padding: 30px;
+  padding: 20px;
 }
 .story-card {
   background-color: #1a1a1a;
@@ -32,13 +32,17 @@ h1 {
   border: 2px solid #ff0000;
 }
 .story-title {
-  font-size: 16px;
+  font-size: 14px;
   color: #fff;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 .story-summary {
   font-size: 12px;
-  margin: 15px 0;
   color: #ccc;
+  line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 .read-button {
   background-color: #ff0000;
