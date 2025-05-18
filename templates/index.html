@@ -1,20 +1,32 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Media Writer</title>
-    <link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8">
+  <title>Media Writer</title>
+  <link href="https://fonts.cdnfonts.com/css/press-start-2p" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <div class="logo"><h1>Media Writer</h1></div>
+  <header>
+    <img src="{{ url_for('static', filename='media-writer-logo.png') }}" alt="Media Writer Logo">
+    <h1>MEDIA WRITER</h1>
+    {% if session.logged_in %}
+      <a href="/logout" class="logout-link">LOGOUT</a>
+    {% else %}
+      <a href="/login" class="login-link">LOGIN</a>
+    {% endif %}
+  </header>
 
-        {% for entry in entries %}
-        <div class="news-card">
-            <h3><a href="{{ entry.link }}" target="_blank">{{ entry.title }}</a></h3>
-            <p class="meta">{{ entry.source }} — {{ entry.published }}</p>
-            <p class="summary">{{ entry.summary }}</p>
-        </div>
-        {% endfor %}
+  <div class="story-feed">
+    {% for story in stories %}
+    <div class="story-card">
+      <div class="story-title">{{ story.title }}</div>
+      <div class="story-summary">{{ story.summary }}</div>
+      <a href="{{ story.link }}">
+        <button class="read-button">READ FULL STORY</button>
+      </a>
     </div>
+    {% endfor %}
+  </div>
 </body>
 </html>
