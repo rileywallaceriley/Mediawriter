@@ -23,29 +23,21 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
 def rewrite_with_openai(full_text, title):
     try:
+        prompt = (
+            "Rewrite the following news article in AP style. "
+            "Create a punchy, professional headline that accurately reflects the story. "
+            "Return your output in the following format:\n\n"
+            "---\n"
+            "TITLE: <Rewritten Title>\n"
+            "---\n"
+            "CONTENT:\n<Rewritten body here, under 300 words, in short readable paragraphs.>\n\n"
+            "Include relevant quotes if present. Do not use first-person language or reference the original article."
+            f"\n\nTitle: {title}\n\nBody:\n{full_text.strip()}"
+        )
+
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[
-                {
-                    "role": "user",
-                    "content": f"""Rewrite this news article in AP style.
-Rewrite the title as a punchy, professional headline.
-Return your output in the following format:
-
----
-TITLE: <Rewritten Title>
----
-CONTENT:
-<Rewritten body here, under 300 words, in short readable paragraphs.>
-
-Do not reference the original article or use first-person language.
-
-Title: {title}
-Body:
-{full_text.strip()}
-"""
-                }
-            ],
+            messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=800
         )
