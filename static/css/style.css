@@ -1,1 +1,80 @@
-body { background-color: black; color: white; font-family: monospace; }
+body {
+  background: #000;
+  font-family: 'Press Start 2P', monospace;
+  color: #fff;
+  margin: 0;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  background-color: #111;
+  border-bottom: 4px solid #ff0000;
+}
+
+h1 {
+  font-size: 24px;
+  color: #ff0000;
+  margin: 0;
+}
+
+.login-link,
+.logout-link {
+  color: #ff0000;
+  font-size: 12px;
+  text-decoration: none;
+  padding-right: 20px;
+}
+
+.story-feed {
+  padding: 20px;
+}
+
+.story-card {
+  background-color: #1a1a1a;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 2px solid #ff0000;
+}
+
+.story-title {
+  font-size: 14px;
+  color: #fff;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+.story-summary {
+  font-size: 12px;
+  color: #ccc;
+  line-height: 1.5;
+  white-space: pre-line;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  margin-bottom: 15px;
+}
+
+.read-button {
+  background-color: #ff0000;
+  color: #fff;
+  border: none;
+  padding: 10px 15px;
+  cursor: pointer;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+}
+
+.read-button:hover {
+  background-color: #cc0000;
+}
+
+.input-box {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  padding: 10px;
+  width: 100%;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+}
