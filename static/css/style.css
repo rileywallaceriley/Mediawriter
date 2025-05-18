@@ -4,7 +4,6 @@ body {
   color: #fff;
   margin: 0;
 }
-
 header {
   display: flex;
   align-items: center;
@@ -13,46 +12,34 @@ header {
   background-color: #111;
   border-bottom: 4px solid #ff0000;
 }
-
-header img {
-  height: 64px;
-  margin-right: 20px;
-}
-
 h1 {
   font-size: 24px;
   color: #ff0000;
 }
-
 .login-link, .logout-link {
   color: #ff0000;
   font-size: 12px;
   text-decoration: none;
   padding-right: 20px;
 }
-
 .story-feed {
   padding: 30px;
 }
-
 .story-card {
   background-color: #1a1a1a;
   padding: 20px;
   margin-bottom: 20px;
   border: 2px solid #ff0000;
 }
-
 .story-title {
   font-size: 16px;
   color: #fff;
 }
-
 .story-summary {
   font-size: 12px;
   margin: 15px 0;
   color: #ccc;
 }
-
 .read-button {
   background-color: #ff0000;
   color: #fff;
@@ -60,11 +47,9 @@ h1 {
   padding: 10px 15px;
   cursor: pointer;
 }
-
 .read-button:hover {
   background-color: #cc0000;
 }
-
 .input-box {
   margin-top: 10px;
   margin-bottom: 10px;
