@@ -13,6 +13,7 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 
+# Environment Variables
 RSS_FEED = os.getenv("RSS_FEED")
 WP_URL = os.getenv("WP_URL")
 WP_USERNAME = os.getenv("WP_USERNAME")
@@ -56,7 +57,7 @@ def rewrite_article(url, title):
             if word_count >= max_words:
                 break
 
-        if para and word_count < max_words:
+        if para:
             paragraphs.append(' '.join(para))
 
         formatted = '\n\n'.join(paragraphs)
@@ -65,44 +66,51 @@ def rewrite_article(url, title):
     except Exception as e:
         return f"Failed to fetch article: {e}"
 
-def rewrite_title(original_title, content):
-    if "chris brown" in content.lower() and "hoodybaby" in content.lower():
-        return "Chris Brown Co-Accused HoodyBaby Faces Court Over London Attack"
-    return original_title.strip().capitalize()
+def to_title_case(text):
+    return re.sub(r"[A-Za-z]+('[A-Za-z]+)?",
+                  lambda match: match.group(0)[0].upper() + match.group(0)[1:].lower(),
+                  text)
 
 @app.route('/')
 def home():
     feed = feedparser.parse(RSS_FEED)
     stories = []
-
+    seen_titles = set()
     now = datetime.utcnow()
-    cutoff = now - timedelta(days=1)
+    max_window = now - timedelta(hours=48)
 
-    for entry in sorted(feed.entries, key=lambda e: getattr(e, 'published_parsed', time.gmtime(0)), reverse=True):
+    entries = sorted(feed.entries, key=lambda e: getattr(e, 'published_parsed', time.gmtime(0)), reverse=True)
+
+    for entry in entries:
         if len(stories) >= 10:
             break
 
         if hasattr(entry, 'published_parsed'):
             published = datetime.fromtimestamp(time.mktime(entry.published_parsed))
-            if published < cutoff:
+            if published < max_window:
                 continue
 
-        if "a timeline of" in entry.title.lower():
-            continue
-
-        if "tmz.com" in entry.link:
+        if "a timeline of" in entry.title.lower() or "tmz.com" in entry.link:
             continue
 
         rewritten = rewrite_article(entry.link, entry.title)
         if not rewritten or "Failed" in rewritten:
             continue
 
-        final_title = rewrite_title(entry.title, rewritten)
+        clean_title = to_title_case(entry.title.strip())
+        slug = clean_title.lower()
+
+        if slug in seen_titles:
+            continue
+        seen_titles.add(slug)
+
+        source_link = f'<div class="source-link"><a href="{entry.link}" target="_blank">Original Source</a></div>'
+        rewritten_with_source = rewritten + "\n\n" + source_link
 
         stories.append({
-            'title': final_title,
-            'summary': rewritten,
-            'link': f'/article?url={entry.link}&title={final_title}'
+            'title': clean_title,
+            'summary': rewritten_with_source,
+            'link': f'/article?url={entry.link}&title={clean_title}'
         })
 
     return render_template('index.html', stories=stories)
@@ -132,9 +140,13 @@ def publish():
     title = request.form.get('title')
     content = request.form.get('content')
 
+    # Strip internal-only lines
+    content = re.sub(r'<div class="source-link">.*?</div>', '', content, flags=re.DOTALL)
+    content = re.sub(r'\*As reported by.*?\*', '', content)
+
     wp_api = f"{WP_URL}/wp-json/wp/v2/posts"
     auth = (WP_USERNAME, WP_APP_PASSWORD)
-    data = {'title': title, 'content': content, 'status': 'draft'}
+    data = {'title': title, 'content': content.strip(), 'status': 'draft'}
 
     res = requests.post(wp_api, auth=auth, json=data)
     if res.status_code == 201:
