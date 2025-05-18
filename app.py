@@ -8,18 +8,39 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 import time
 import re
+import openai
 
 load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 
 # Environment Variables
+openai.api_key = os.getenv("OPENAI_API_KEY")
 RSS_FEED = os.getenv("RSS_FEED")
 WP_URL = os.getenv("WP_URL")
 WP_USERNAME = os.getenv("WP_USERNAME")
 WP_APP_PASSWORD = os.getenv("WP_APP_PASSWORD")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+
+def call_openai_rewrite(text):
+    try:
+        prompt = (
+            "Rewrite the following news article in third-person AP style. "
+            "Make it no more than 300 words. Break into readable short paragraphs. "
+            "Do not use first-person language. Do not reference the original article or source.\n\n"
+            f"Article:\n{text.strip()}"
+        )
+
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            temperature=0.7,
+            max_tokens=750,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return response['choices'][0]['message']['content'].strip()
+    except Exception as e:
+        return f"Failed to rewrite: {e}"
 
 def rewrite_article(url, title):
     try:
@@ -30,38 +51,11 @@ def rewrite_article(url, title):
         article.download()
         article.parse()
 
-        text = article.text.strip()
-        if not text:
-            return "Failed to extract article text."
+        raw_text = article.text.strip()
+        if not raw_text or len(raw_text.split()) < 100:
+            return None
 
-        soup = BeautifulSoup(text, "html.parser")
-        cleaned_text = soup.get_text()
-        sentences = re.split(r'(?<=[.!?])\s+', cleaned_text.strip())
-
-        paragraphs = []
-        para = []
-        word_count = 0
-        max_words = 300
-
-        for sentence in sentences:
-            if "..." in sentence:
-                continue
-            words_in_sentence = len(sentence.split())
-            word_count += words_in_sentence
-            para.append(sentence)
-
-            if len(' '.join(para)) > 500 or len(para) >= 4:
-                paragraphs.append(' '.join(para))
-                para = []
-
-            if word_count >= max_words:
-                break
-
-        if para:
-            paragraphs.append(' '.join(para))
-
-        formatted = '\n\n'.join(paragraphs)
-        return formatted
+        return call_openai_rewrite(raw_text)
 
     except Exception as e:
         return f"Failed to fetch article: {e}"
