@@ -56,30 +56,37 @@ def rewrite():
         full_text = article.text.strip()
 
         if len(full_text.split()) < 50:
-            return jsonify({'error': 'Article too short'}), 400
+            return jsonify({'error': 'Article too short to rewrite'}), 400
 
         prompt = (
-            "Rewrite this article in AP news style. Expand to 250–300 words if possible, using short, readable paragraphs (no longer than 6 lines each). "
-            "Preserve any direct quotes or public statements. Do not use first-person language or mention the original source. "
-            "Do not speculate or add new information. Focus on clear who/what/when/where/why facts from the original. "
-            "Format your response strictly like this:\n\n"
-            "---\nTITLE: <Rewritten Title>\n---\nCONTENT:\n<Rewritten Body>\n\n"
-            f"Title: {title}\n\nContent:\n{full_text}"
+            "Rewrite the article below using AP News style. Expand to 250–300 words using short paragraphs (no longer than 6 lines each). "
+            "Preserve direct quotes or public statements if present. Avoid first-person language and don’t reference the original source. "
+            "Only use facts from the article — no speculation or added context. \n\n"
+            "FORMAT STRICTLY LIKE THIS:\n\n"
+            "TITLE: [Your rewritten headline]\n\n"
+            "CONTENT:\n[Your rewritten article in full paragraphs]\n\n"
+            f"TITLE: {title}\n\nCONTENT:\n{full_text}"
         )
 
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
+            temperature=0.5,
             max_tokens=1000
         )
 
         result = response.choices[0].message.content.strip()
+
+        # Format check
+        if "TITLE:" not in result or "CONTENT:" not in result:
+            print("[Malformed OpenAI response]\n", result)
+            return jsonify({'error': 'Malformed response — please retry'}), 500
+
         title_match = re.search(r'TITLE:\s*(.*)', result)
         body_match = re.search(r'CONTENT:\s*(.*)', result, re.DOTALL)
 
         if not title_match or not body_match:
-            return jsonify({'error': 'Malformed rewrite'}), 500
+            return jsonify({'error': 'Failed to parse OpenAI response'}), 500
 
         return jsonify({
             'new_title': title_match.group(1).strip(),
@@ -89,4 +96,4 @@ def rewrite():
     except Exception as e:
         print("[Rewrite error]", e)
         print(traceback.format_exc())
-        return jsonify({'error': 'Server error'}), 500
+        return jsonify({'error': 'Server error — try again later'}), 500
