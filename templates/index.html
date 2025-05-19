@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Media Writer</title>
   <link href="https://fonts.cdnfonts.com/css/press-start-2p" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=4">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=5">
 </head>
 <body>
   <header>
@@ -16,7 +16,9 @@
     {% endif %}
   </header>
 
-  <main class="story-feed" id="story-feed">
+  <div id="loading">Loading stories...</div>
+
+  <main class="story-feed" id="story-feed" style="display:none;">
     {% for story in stories %}
     <div class="story-card">
       <div class="story-title">{{ story.title }}</div>
@@ -27,12 +29,7 @@
     {% endfor %}
   </main>
 
-  <div id="load-more-container" class="pagination">
-    <button id="load-more" onclick="loadMore()">LOAD 5 MORE</button>
-  </div>
-
   <script>
-    let offset = {{ initial_count }};
     function copyToClipboard(id) {
       const text = document.getElementById(id).value;
       navigator.clipboard.writeText(text).then(() => {
@@ -40,34 +37,10 @@
       });
     }
 
-    function loadMore() {
-      fetch("/load_more", {
-        method: "POST",
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: "offset=" + offset
-      })
-      .then(res => res.json())
-      .then(data => {
-        const container = document.getElementById("story-feed");
-        if (data.length === 0) {
-          document.getElementById("load-more-container").style.display = "none";
-          return;
-        }
-        data.forEach((story, index) => {
-          const div = document.createElement("div");
-          const textId = "copy-" + (offset + index + 1);
-          div.className = "story-card";
-          div.innerHTML = `
-            <div class="story-title">${story.title}</div>
-            <div class="story-summary">${story.summary}</div>
-            <textarea id="${textId}" style="display:none;">${story.title}\n\n${story.summary}</textarea>
-            <button class="copy-button" onclick="copyToClipboard('${textId}')">COPY</button>
-          `;
-          container.appendChild(div);
-        });
-        offset += data.length;
-      });
-    }
+    window.onload = function() {
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("story-feed").style.display = "block";
+    };
   </script>
 </body>
 </html>
