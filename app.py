@@ -36,7 +36,7 @@ def rewrite_with_openai(full_text, title):
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=1300
+            max_tokens=1000
         )
 
         result = response.choices[0].message.content.strip()
@@ -76,7 +76,7 @@ def rewrite_article(entry):
         print(f"[Article parse error] {e}")
         return None
 
-def get_feed_entries(limit=5):
+def get_feed_entries(limit=7):
     feed = feedparser.parse(RSS_FEED)
     now = datetime.utcnow()
     window = now - timedelta(hours=48)
@@ -113,7 +113,7 @@ def redirect_to_loading():
 def home():
     try:
         print("Starting rewrite process...")
-        stories = get_feed_entries(limit=5)
+        stories = get_feed_entries(limit=7)
         print(f"{len(stories)} stories rewritten successfully.")
         return render_template('index.html', stories=stories)
     except Exception as e:
