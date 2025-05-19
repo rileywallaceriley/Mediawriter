@@ -18,14 +18,6 @@ header h1 {
   margin: 0;
 }
 
-header a {
-  display: inline-block;
-  margin-top: 10px;
-  font-size: 10px;
-  color: red;
-  text-decoration: none;
-}
-
 .story-feed {
   max-width: 800px;
   margin: 30px auto;
@@ -54,7 +46,7 @@ header a {
   margin-bottom: 12px;
 }
 
-.copy-button {
+.rewrite-button {
   background: red;
   color: #000;
   border: none;
