@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, flash
+from flask import Flask, render_template, request, redirect, session, flash, jsonify
 from dotenv import load_dotenv
 import os
 import feedparser
@@ -21,6 +21,7 @@ WP_APP_PASSWORD = os.getenv("WP_APP_PASSWORD")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
+# Rewrites article using OpenAI and returns title + rewritten body
 def rewrite_with_openai(full_text, title):
     try:
         prompt = (
@@ -39,7 +40,8 @@ def rewrite_with_openai(full_text, title):
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=800
+            max_tokens=800,
+            timeout=15
         )
 
         content = response.choices[0].message.content.strip()
@@ -70,8 +72,8 @@ def rewrite_article_from_url(url, original_title):
         print(f"[ERROR scraping] {url} — {e}")
         return original_title, None
 
-@app.route('/')
-def home():
+# Fetches and rewrites N entries starting from offset
+def get_rewritten_stories(offset=0, limit=5):
     feed = feedparser.parse(RSS_FEED)
     stories = []
     seen_titles = set()
@@ -80,8 +82,9 @@ def home():
 
     entries = sorted(feed.entries, key=lambda e: getattr(e, 'published_parsed', time.gmtime(0)), reverse=True)
 
-    for entry in entries:
-        if len(stories) >= 10:
+    count = 0
+    for i, entry in enumerate(entries[offset:], start=offset):
+        if count >= limit:
             break
 
         if hasattr(entry, 'published_parsed'):
@@ -111,28 +114,20 @@ def home():
             'summary': rewritten_with_source,
             'link': f'/article?url={entry.link}&title={new_title}'
         })
+        count += 1
 
-    return render_template('index.html', stories=stories)
+    return stories
 
-@app.route('/article')
-def article():
-    url = request.args.get('url')
-    title = request.args.get('title')
-    new_title, rewritten = rewrite_article_from_url(url, title)
+@app.route('/')
+def home():
+    stories = get_rewritten_stories(offset=0, limit=5)
+    return render_template('index.html', stories=stories, initial_count=5)
 
-    if not rewritten:
-        rewritten = "Failed to load article."
-
-    add_citation = False
-    if any(word in rewritten.lower() for word in ["interview", "said", "spoke with", "told", "discussed"]):
-        add_citation = True
-
-    if add_citation:
-        domain_match = re.findall(r"https?://(?:www\.)?([^/]+)", url)
-        if domain_match:
-            rewritten += f"\n\n*As reported by <a href=\"{url}\">{domain_match[0]}</a>.*"
-
-    return render_template('article.html', title=new_title, content=rewritten)
+@app.route('/load_more', methods=['POST'])
+def load_more():
+    offset = int(request.form.get('offset', 0))
+    stories = get_rewritten_stories(offset=offset, limit=5)
+    return jsonify(stories)
 
 @app.route('/publish', methods=['POST'])
 def publish():
