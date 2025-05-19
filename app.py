@@ -97,6 +97,10 @@ def get_feed_entries(limit=10):
     return stories
 
 @app.route('/')
+def redirect_to_loading():
+    return render_template('loading.html')
+
+@app.route('/ready')
 def home():
     stories = get_feed_entries(limit=10)
     return render_template('index.html', stories=stories)
