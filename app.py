@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, session, flash
 from dotenv import load_dotenv
 import os
 import feedparser
@@ -26,7 +26,6 @@ def rewrite_with_openai(full_text, title):
             "---\nTITLE: <Rewritten Title>\n---\nCONTENT:\n<Rewritten Body>\n\n"
             f"Title: {title}\n\nContent:\n{full_text.strip()}"
         )
-
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
@@ -35,19 +34,11 @@ def rewrite_with_openai(full_text, title):
         )
 
         result = response.choices[0].message.content.strip()
-
-        # Defensive parsing
-        if "TITLE:" not in result or "CONTENT:" not in result:
-            print("[OpenAI format error] Missing TITLE or CONTENT marker.")
-            print(result)
-            return title, None
-
         title_match = re.search(r'TITLE:\s*(.*)', result)
         body_match = re.search(r'CONTENT:\s*(.*)', result, re.DOTALL)
 
         if not title_match or not body_match:
-            print("[OpenAI parse error] Could not extract title or content.")
-            print(result)
+            print("[OpenAI parse error] Output:\n", result)
             return title, None
 
         return title_match.group(1).strip(), body_match.group(1).strip()
@@ -65,7 +56,6 @@ def rewrite_article(entry):
         text = article.text.strip()
 
         if len(text.split()) < 50:
-            print(f"Skipped (too short): {entry.link}")
             return None
 
         new_title, new_summary = rewrite_with_openai(text, entry.title)
@@ -77,11 +67,10 @@ def rewrite_article(entry):
             "summary": new_summary + f'\n\n<div class="source-link"><a href="{entry.link}" target="_blank">Original Source</a></div>'
         }
     except Exception as e:
-        print(f"Article parse failed: {e}")
-        print(traceback.format_exc())
+        print(f"[Article parse error] {e}")
         return None
 
-def get_feed_entries(offset=0, limit=5):
+def get_feed_entries(limit=10):
     feed = feedparser.parse(RSS_FEED)
     now = datetime.utcnow()
     window = now - timedelta(hours=48)
@@ -96,32 +85,20 @@ def get_feed_entries(offset=0, limit=5):
             continue
         valid_entries.append(entry)
 
-    results = []
-    count = 0
-    for entry in valid_entries[offset:]:
-        try:
-            story = rewrite_article(entry)
-            if story:
-                results.append(story)
-                count += 1
-            if count >= limit:
-                break
-        except Exception as e:
-            print(f"Error rewriting entry: {e}")
-            print(traceback.format_exc())
+    stories = []
+    for entry in valid_entries:
+        story = rewrite_article(entry)
+        if story:
+            stories.append(story)
+        if len(stories) >= limit:
+            break
 
-    return results
+    return stories
 
 @app.route('/')
 def home():
-    stories = get_feed_entries(offset=0, limit=5)
-    return render_template('index.html', stories=stories, initial_count=5)
-
-@app.route('/load_more', methods=['POST'])
-def load_more():
-    offset = int(request.form.get("offset", 0))
-    stories = get_feed_entries(offset=offset, limit=5)
-    return jsonify(stories)
+    stories = get_feed_entries(limit=10)
+    return render_template('index.html', stories=stories)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
