@@ -16,7 +16,7 @@ app.secret_key = os.getenv("SECRET_KEY")
 
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
-    timeout=60  # in seconds
+    timeout=60  # prevent timeout during long completions
 )
 RSS_FEED = os.getenv("RSS_FEED")
 
@@ -74,7 +74,7 @@ def rewrite_article(entry):
         print(f"[Article parse error] {e}")
         return None
 
-def get_feed_entries(limit=10):
+def get_feed_entries(limit=5):
     feed = feedparser.parse(RSS_FEED)
     now = datetime.utcnow()
     window = now - timedelta(hours=48)
@@ -91,9 +91,13 @@ def get_feed_entries(limit=10):
 
     stories = []
     for entry in valid_entries:
-        story = rewrite_article(entry)
-        if story:
-            stories.append(story)
+        try:
+            story = rewrite_article(entry)
+            if story:
+                stories.append(story)
+        except Exception as e:
+            print(f"[Rewrite skipped] {entry.title} — {e}")
+            continue
         if len(stories) >= limit:
             break
 
@@ -105,8 +109,15 @@ def redirect_to_loading():
 
 @app.route('/ready')
 def home():
-    stories = get_feed_entries(limit=10)
-    return render_template('index.html', stories=stories)
+    try:
+        print("Starting rewrite process...")
+        stories = get_feed_entries(limit=5)
+        print(f"{len(stories)} stories rewritten successfully.")
+        return render_template('index.html', stories=stories)
+    except Exception as e:
+        print(f"[ERROR] Failed to render /ready: {e}")
+        print(traceback.format_exc())
+        return "Internal Server Error", 500
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
