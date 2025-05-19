@@ -20,6 +20,30 @@ client = OpenAI(
 
 RSS_FEED = os.getenv("RSS_FEED")
 
+
+def safe_rewrite_call(prompt):
+    for attempt in range(2):  # Try once, then retry
+        try:
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.5,
+                max_tokens=1000
+            )
+            result = response.choices[0].message.content.strip()
+
+            if "TITLE:" in result and "CONTENT:" in result:
+                return result
+
+            print(f"[Attempt {attempt+1}] Malformed response:\n{result}")
+
+        except Exception as e:
+            print(f"[Attempt {attempt+1}] Rewrite call error: {e}")
+            continue
+
+    return None
+
+
 @app.route('/')
 def home():
     feed = feedparser.parse(RSS_FEED)
@@ -44,6 +68,7 @@ def home():
 
     return render_template('index.html', stories=stories)
 
+
 @app.route('/rewrite', methods=['POST'])
 def rewrite():
     try:
@@ -59,7 +84,7 @@ def rewrite():
             return jsonify({'error': 'Article too short to rewrite'}), 400
 
         prompt = (
-            "Rewrite the article below using AP News style. Expand to 300 words minimum using short paragraphs (no longer than 6 lines each). "
+            "Rewrite the article below using AP News style. Expand to 300 words using short paragraphs (no longer than 6 lines each). "
             "Preserve direct quotes or public statements if present. Avoid first-person language and don’t reference the original source. "
             "Only use facts from the article — no speculation or added context. \n\n"
             "FORMAT STRICTLY LIKE THIS:\n\n"
@@ -68,25 +93,15 @@ def rewrite():
             f"TITLE: {title}\n\nCONTENT:\n{full_text}"
         )
 
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.5,
-            max_tokens=1000
-        )
-
-        result = response.choices[0].message.content.strip()
-
-        # Format check
-        if "TITLE:" not in result or "CONTENT:" not in result:
-            print("[Malformed OpenAI response]\n", result)
+        result = safe_rewrite_call(prompt)
+        if not result:
             return jsonify({'error': 'Malformed response — please retry'}), 500
 
         title_match = re.search(r'TITLE:\s*(.*)', result)
         body_match = re.search(r'CONTENT:\s*(.*)', result, re.DOTALL)
 
         if not title_match or not body_match:
-            return jsonify({'error': 'Failed to parse OpenAI response'}), 500
+            return jsonify({'error': 'Failed to parse AI response'}), 500
 
         return jsonify({
             'new_title': title_match.group(1).strip(),
