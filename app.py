@@ -59,7 +59,7 @@ def rewrite():
             return jsonify({'error': 'Article too short to rewrite'}), 400
 
         prompt = (
-            "Rewrite the article below using AP News style. Expand to 250–300 words using short paragraphs (no longer than 6 lines each). "
+            "Rewrite the article below using AP News style. Expand to 300 words minimum using short paragraphs (no longer than 6 lines each). "
             "Preserve direct quotes or public statements if present. Avoid first-person language and don’t reference the original source. "
             "Only use facts from the article — no speculation or added context. \n\n"
             "FORMAT STRICTLY LIKE THIS:\n\n"
