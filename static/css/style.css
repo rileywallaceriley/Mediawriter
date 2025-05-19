@@ -26,6 +26,13 @@ header a {
   text-decoration: none;
 }
 
+#loading {
+  color: red;
+  text-align: center;
+  padding: 40px;
+  font-size: 12px;
+}
+
 .story-feed {
   max-width: 800px;
   margin: 30px auto;
@@ -62,20 +69,4 @@ header a {
   cursor: pointer;
   font-family: 'Press Start 2P', sans-serif;
   font-size: 10px;
-}
-
-.copy-button:hover {
-  background: #ff4444;
-}
-
-.pagination {
-  text-align: center;
-  margin: 30px;
-}
-
-.pagination a {
-  color: red;
-  font-size: 10px;
-  text-decoration: none;
-  margin: 0 10px;
 }
