@@ -14,7 +14,7 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+openai.api_key = os.getenv("OPENAI_API_KEY")
 RSS_FEED = os.getenv("RSS_FEED")
 
 def rewrite_with_openai(full_text, title):
@@ -26,7 +26,8 @@ def rewrite_with_openai(full_text, title):
             "---\nTITLE: <Rewritten Title>\n---\nCONTENT:\n<Rewritten Body>\n\n"
             f"Title: {title}\n\nContent:\n{full_text.strip()}"
         )
-        response = client.chat.completions.create(
+
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
