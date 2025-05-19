@@ -76,7 +76,7 @@ def rewrite_article(entry):
         print(f"[Article parse error] {e}")
         return None
 
-def get_feed_entries(limit=5):
+def get_feed_entries(limit=2):
     feed = feedparser.parse(RSS_FEED)
     now = datetime.utcnow()
     window = now - timedelta(hours=48)
