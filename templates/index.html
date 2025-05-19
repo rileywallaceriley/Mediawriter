@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <title>Media Writer</title>
   <link href="https://fonts.cdnfonts.com/css/press-start-2p" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2">
 </head>
 <body>
   <header>
-    <h1>MEDIA WRITER</h1>
+    <img src="" />
     {% if session.logged_in %}
     <a href="/logout">LOGOUT</a>
     {% else %}
@@ -28,22 +28,20 @@
 
     <div class="pagination">
       {% if page > 1 %}
-      <a href="/page/{{ page - 1 }}">« Prev</a>
+      <a href="/?page={{ page - 1 }}">« Prev</a>
       {% endif %}
       {% if has_next %}
-      <a href="/page/{{ page + 1 }}">Next »</a>
+      <a href="/?page={{ page + 1 }}">Next »</a>
       {% endif %}
     </div>
   </main>
 
   <script>
     function copyToClipboard(id) {
-      const el = document.getElementById(id);
-      el.style.display = 'block';
-      el.select();
-      document.execCommand('copy');
-      el.style.display = 'none';
-      alert("Copied!");
+      const text = document.getElementById(id).value;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Copied!");
+      });
     }
   </script>
 </body>
