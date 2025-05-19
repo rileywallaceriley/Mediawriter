@@ -16,15 +16,17 @@ app.secret_key = os.getenv("SECRET_KEY")
 
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
-    timeout=60  # prevent timeout during long completions
+    timeout=60
 )
+
 RSS_FEED = os.getenv("RSS_FEED")
 
 def rewrite_with_openai(full_text, title):
     try:
         prompt = (
-            "Rewrite this article in AP news style with short, readable paragraphs (max 6 lines). "
+            "Rewrite this article in AP news style. Expand to 250–300 words if possible, using short, readable paragraphs (no longer than 6 lines each). "
             "Preserve any direct quotes or public statements. Do not use first-person language or mention the original source. "
+            "Do not speculate or add new information. Focus on clear who/what/when/where/why facts from the original. "
             "Format your response strictly like this:\n\n"
             "---\nTITLE: <Rewritten Title>\n---\nCONTENT:\n<Rewritten Body>\n\n"
             f"Title: {title}\n\nContent:\n{full_text.strip()}"
@@ -34,7 +36,7 @@ def rewrite_with_openai(full_text, title):
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=900
+            max_tokens=1300
         )
 
         result = response.choices[0].message.content.strip()
