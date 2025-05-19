@@ -14,7 +14,10 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"),
+    timeout=60  # in seconds
+)
 RSS_FEED = os.getenv("RSS_FEED")
 
 def rewrite_with_openai(full_text, title):
