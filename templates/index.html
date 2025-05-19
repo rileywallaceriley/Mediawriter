@@ -5,19 +5,18 @@
   <title>Media Writer</title>
   <link href="https://fonts.cdnfonts.com/css/press-start-2p" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
 </head>
 <body>
-  <header style="text-align:center; padding:20px;">
-    <h1 style="font-family: 'Press Start 2P', sans-serif;">MEDIA WRITER</h1>
+  <header>
+    <h1>MEDIA WRITER</h1>
     {% if session.logged_in %}
-      <a href="/logout" class="logout-link">LOGOUT</a>
+    <a href="/logout">LOGOUT</a>
     {% else %}
-      <a href="/login" class="login-link">LOGIN</a>
+    <a href="/login">LOGIN</a>
     {% endif %}
   </header>
 
-  <div class="story-feed" id="story-feed">
+  <main class="story-feed">
     {% for story in stories %}
     <div class="story-card">
       <div class="story-title">{{ story.title }}</div>
@@ -26,15 +25,18 @@
       <button class="copy-button" onclick="copyToClipboard('copy-{{ loop.index }}')">COPY</button>
     </div>
     {% endfor %}
-  </div>
 
-  <div id="load-more-container" style="text-align:center; margin:20px;">
-    <button id="load-more" onclick="loadMore()">LOAD 5 MORE</button>
-  </div>
+    <div class="pagination">
+      {% if page > 1 %}
+      <a href="/page/{{ page - 1 }}">« Prev</a>
+      {% endif %}
+      {% if has_next %}
+      <a href="/page/{{ page + 1 }}">Next »</a>
+      {% endif %}
+    </div>
+  </main>
 
   <script>
-    let offset = {{ initial_count }};
-
     function copyToClipboard(id) {
       const el = document.getElementById(id);
       el.style.display = 'block';
@@ -43,20 +45,6 @@
       el.style.display = 'none';
       alert("Copied!");
     }
-
-    function loadMore() {
-      fetch("/load_more", {
-        method: "POST",
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: "offset=" + offset
-      })
-      .then(res => res.json())
-      .then(data => {
-        const container = document.getElementById("story-feed");
-        data.forEach((story, index) => {
-          const div = document.createElement("div");
-          div.className = "story-card";
-          const textId = `copy-${offset + index + 1}`;
-          div.innerHTML = `
-            <div class="story-title">${story.title}</div>
-            <div class="story-summary">${story.summary}</div>
+  </script>
+</body>
+</html>
