@@ -4,35 +4,55 @@
   <meta charset="UTF-8">
   <title>Media Writer</title>
   <link href="https://fonts.cdnfonts.com/css/press-start-2p" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=6">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
   <header>
     <h1>MEDIA WRITER</h1>
-    {% if session.logged_in %}
-      <a href="/logout">LOGOUT</a>
-    {% else %}
-      <a href="/login">LOGIN</a>
-    {% endif %}
   </header>
 
   <main class="story-feed">
     {% for story in stories %}
-    <div class="story-card">
-      <div class="story-title">{{ story.title }}</div>
-      <div class="story-summary">{{ story.summary|safe }}</div>
-      <textarea id="copy-{{ loop.index }}" style="display:none;">{{ story.title }}&#10;&#10;{{ story.summary|safe }}</textarea>
-      <button class="copy-button" onclick="copyToClipboard('copy-{{ loop.index }}')">COPY</button>
+    <div class="story-card" id="card-{{ loop.index }}">
+      <div class="story-title" id="title-{{ loop.index }}">{{ story.title }}</div>
+      <div class="story-summary" id="summary-{{ loop.index }}">
+        <em>Click rewrite to generate full summary.</em>
+      </div>
+      <button class="rewrite-button" onclick="rewriteStory('{{ story.link }}', '{{ story.title|e }}', {{ loop.index }})">REWRITE</button>
     </div>
     {% endfor %}
   </main>
 
   <script>
-    function copyToClipboard(id) {
-      const text = document.getElementById(id).value;
-      navigator.clipboard.writeText(text).then(() => {
-        alert("Copied!");
-      });
+    async function rewriteStory(url, title, index) {
+      const btn = document.querySelector(`#card-${index} .rewrite-button`);
+      const summary = document.getElementById(`summary-${index}`);
+      const titleEl = document.getElementById(`title-${index}`);
+
+      btn.disabled = true;
+      btn.textContent = "Rewriting...";
+
+      try {
+        const res = await fetch('/rewrite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, title })
+        });
+
+        const data = await res.json();
+
+        if (data.error) {
+          summary.innerHTML = `<span style="color:red;">${data.error}</span>`;
+        } else {
+          titleEl.innerText = data.new_title;
+          summary.innerHTML = `<p>${data.new_body.replace(/\n/g, '</p><p>')}</p>`;
+        }
+      } catch (err) {
+        summary.innerHTML = `<span style="color:red;">Request failed.</span>`;
+      }
+
+      btn.disabled = false;
+      btn.textContent = "REWRITE AGAIN";
     }
   </script>
 </body>
