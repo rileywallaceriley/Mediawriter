@@ -7,14 +7,14 @@ from newspaper import Article
 from datetime import datetime, timedelta
 import time
 import re
-import openai
 import traceback
+from openai import OpenAI
 
 load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 RSS_FEED = os.getenv("RSS_FEED")
 
 def rewrite_with_openai(full_text, title):
@@ -27,7 +27,7 @@ def rewrite_with_openai(full_text, title):
             f"Title: {title}\n\nContent:\n{full_text.strip()}"
         )
 
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
