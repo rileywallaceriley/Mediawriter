@@ -6,10 +6,51 @@
   <link href="https://fonts.cdnfonts.com/css/press-start-2p" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <style>
+    .story-feed {
+      padding: 20px;
+    }
+    .story-card {
+      border: 1px solid #ccc;
+      padding: 15px;
+      margin-bottom: 20px;
+      background: #f9f9f9;
+    }
+    .story-title {
+      font-weight: bold;
+      font-size: 1.2em;
+      margin-bottom: 10px;
+    }
+    .story-summary {
+      margin-bottom: 10px;
+    }
+    .copy-button {
+      background-color: black;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-family: 'Press Start 2P', sans-serif;
+    }
+    .copy-button:hover {
+      background-color: #333;
+    }
+    #load-more {
+      background-color: #222;
+      color: #fff;
+      padding: 10px 15px;
+      border: none;
+      font-family: 'Press Start 2P', sans-serif;
+      cursor: pointer;
+    }
+    #load-more:hover {
+      background-color: #444;
+    }
+  </style>
 </head>
 <body>
-  <header>
-    <img src="https://i.imgur.com/Kep8xHz.png" width="50%" />
+  <header style="text-align:center; padding:20px;">
+    <h1 style="font-family: 'Press Start 2P', sans-serif;">MEDIA WRITER</h1>
     {% if session.logged_in %}
       <a href="/logout" class="logout-link">LOGOUT</a>
     {% else %}
@@ -17,23 +58,54 @@
     {% endif %}
   </header>
 
-  <div class="story-feed">
-    {% if stories %}
-      {% for story in stories %}
-        <div class="story-card">
-          <div class="story-title">{{ story.title }}</div>
-          <div class="story-summary">{{ story.summary }}</div>
-          <a href="{{ story.link }}">
-            <button class="read-button">READ FULL STORY</button>
-          </a>
-        </div>
-      {% endfor %}
-    {% else %}
-      <div class="story-card">
-        <div class="story-title">No stories found</div>
-        <div class="story-summary">Check your RSS feed or rewrite logic.</div>
-      </div>
-    {% endif %}
+  <div class="story-feed" id="story-feed">
+    {% for story in stories %}
+    <div class="story-card">
+      <div class="story-title">{{ story.title }}</div>
+      <div class="story-summary">{{ story.summary|safe }}</div>
+      <button class="copy-button" onclick="copyText(`{{ story.title }}\n\n{{ story.summary|safe }}`)">COPY</button>
+    </div>
+    {% endfor %}
   </div>
+
+  <div id="load-more-container" style="text-align:center; margin:20px;">
+    <button id="load-more" onclick="loadMore()">LOAD 5 MORE</button>
+  </div>
+
+  <script>
+    let offset = {{ initial_count }};
+
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Copied!");
+      });
+    }
+
+    function loadMore() {
+      fetch("/load_more", {
+        method: "POST",
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: "offset=" + offset
+      })
+      .then(res => res.json())
+      .then(data => {
+        const container = document.getElementById("story-feed");
+        data.forEach(story => {
+          const div = document.createElement("div");
+          div.className = "story-card";
+          div.innerHTML = `
+            <div class="story-title">${story.title}</div>
+            <div class="story-summary">${story.summary}</div>
+            <button class="copy-button" onclick="copyText(\`${story.title}\n\n${story.summary}\`)">COPY</button>
+          `;
+          container.appendChild(div);
+        });
+        offset += data.length;
+        if (data.length < 5) {
+          document.getElementById("load-more-container").style.display = "none";
+        }
+      });
+    }
+  </script>
 </body>
 </html>
