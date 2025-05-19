@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Media Writer</title>
   <link href="https://fonts.cdnfonts.com/css/press-start-2p" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=5">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=6">
 </head>
 <body>
   <header>
@@ -16,9 +16,7 @@
     {% endif %}
   </header>
 
-  <div id="loading">Loading stories...</div>
-
-  <main class="story-feed" id="story-feed" style="display:none;">
+  <main class="story-feed">
     {% for story in stories %}
     <div class="story-card">
       <div class="story-title">{{ story.title }}</div>
@@ -36,11 +34,6 @@
         alert("Copied!");
       });
     }
-
-    window.onload = function() {
-      document.getElementById("loading").style.display = "none";
-      document.getElementById("story-feed").style.display = "block";
-    };
   </script>
 </body>
 </html>
