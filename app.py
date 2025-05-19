@@ -21,7 +21,6 @@ WP_APP_PASSWORD = os.getenv("WP_APP_PASSWORD")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
-# Rewrites article using OpenAI and returns title + rewritten body
 def rewrite_with_openai(full_text, title):
     try:
         prompt = (
@@ -32,7 +31,8 @@ def rewrite_with_openai(full_text, title):
             "TITLE: <Rewritten Title>\n"
             "---\n"
             "CONTENT:\n<Rewritten body here, under 300 words, in short readable paragraphs.>\n\n"
-            "Include relevant quotes if present. Do not use first-person language or reference the original article."
+            "Preserve any public statements or quotes from the original article, including quotes from interviews or fundraising statements. "
+            "Do not use first-person language. Do not refer to the original article directly."
             f"\n\nTitle: {title}\n\nBody:\n{full_text.strip()}"
         )
 
@@ -63,7 +63,6 @@ def rewrite_article_from_url(url, original_title):
         raw_text = article.text.strip()
 
         if not raw_text or len(raw_text.split()) < 50:
-            print(f"[SKIPPED - Too short] {url}")
             return original_title, None
 
         return rewrite_with_openai(raw_text, original_title)
@@ -72,7 +71,6 @@ def rewrite_article_from_url(url, original_title):
         print(f"[ERROR scraping] {url} — {e}")
         return original_title, None
 
-# Fetches and rewrites N entries starting from offset
 def get_rewritten_stories(offset=0, limit=5):
     feed = feedparser.parse(RSS_FEED)
     stories = []
@@ -106,8 +104,7 @@ def get_rewritten_stories(offset=0, limit=5):
         if not rewritten:
             continue
 
-        source_link = f'<div class="source-link"><a href="{entry.link}" target="_blank">Original Source</a></div>'
-        rewritten_with_source = rewritten + "\n\n" + source_link
+        rewritten_with_source = rewritten + f'\n\n<div class="source-link"><a href="{entry.link}" target="_blank">Original Source</a></div>'
 
         stories.append({
             'title': new_title,
