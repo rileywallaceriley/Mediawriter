@@ -95,8 +95,8 @@ def get_rewritten_stories(page=1, per_page=5):
     return stories, has_next
 
 @app.route('/')
-@app.route('/page/<int:page>')
-def home(page=1):
+def home():
+    page = int(request.args.get("page", 1))
     stories, has_next = get_rewritten_stories(page=page)
     return render_template('index.html', stories=stories, page=page, has_next=has_next)
 
