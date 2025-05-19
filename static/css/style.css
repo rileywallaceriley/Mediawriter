@@ -26,13 +26,6 @@ header a {
   text-decoration: none;
 }
 
-#loading {
-  color: red;
-  text-align: center;
-  padding: 40px;
-  font-size: 12px;
-}
-
 .story-feed {
   max-width: 800px;
   margin: 30px auto;
