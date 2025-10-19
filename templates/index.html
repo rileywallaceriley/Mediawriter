@@ -5,6 +5,21 @@
   <title>Media Writer</title>
   <link href="https://fonts.cdnfonts.com/css/press-start-2p" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .read-button {
+      background-color: #222;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      margin-top: 10px;
+      cursor: pointer;
+      font-family: 'Press Start 2P', sans-serif;
+      font-size: 10px;
+    }
+    .read-button:hover {
+      background-color: #444;
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -44,8 +59,20 @@
         if (data.error) {
           summary.innerHTML = `<span style="color:red;">${data.error}</span>`;
         } else {
+          // Replace the title and summary with rewritten content
           titleEl.innerText = data.new_title;
           summary.innerHTML = `<p>${data.new_body.replace(/\n/g, '</p><p>')}</p>`;
+
+          // --- ADD: WordPress publish form dynamically ---
+          const publishForm = document.createElement('form');
+          publishForm.method = 'POST';
+          publishForm.action = '/publish';
+          publishForm.innerHTML = `
+            <input type="hidden" name="title" value="${data.new_title}">
+            <input type="hidden" name="content" value="${data.new_body}">
+            <button type="submit" class="read-button">PUBLISH TO WORDPRESS</button>
+          `;
+          summary.appendChild(publishForm);
         }
       } catch (err) {
         summary.innerHTML = `<span style="color:red;">Request failed.</span>`;
