@@ -7,8 +7,10 @@ from newspaper import Article
 from datetime import datetime, timedelta
 import re
 import traceback
+import requests
 from openai import OpenAI
 
+# --- Setup ---
 load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
@@ -20,7 +22,13 @@ client = OpenAI(
 
 RSS_FEED = os.getenv("RSS_FEED")
 
+# --- WordPress Configuration ---
+WORDPRESS_URL = os.getenv("WORDPRESS_URL") or "https://your-site.com/wp-json/wp/v2/posts"
+WORDPRESS_USER = os.getenv("WORDPRESS_USER")
+WORDPRESS_APP_PASS = os.getenv("WORDPRESS_APP_PASS")
 
+
+# --- Helper Function ---
 def safe_rewrite_call(prompt):
     for attempt in range(2):  # Try once, then retry
         try:
@@ -43,6 +51,8 @@ def safe_rewrite_call(prompt):
 
     return None
 
+
+# --- Routes ---
 
 @app.route('/')
 def home():
@@ -112,3 +122,52 @@ def rewrite():
         print("[Rewrite error]", e)
         print(traceback.format_exc())
         return jsonify({'error': 'Server error — try again later'}), 500
+
+
+# --- NEW: Publish to WordPress ---
+@app.route('/publish', methods=['POST'])
+def publish_to_wordpress():
+    try:
+        title = request.form.get("title")
+        content = request.form.get("content")
+
+        if not title or not content:
+            return render_template("article.html", title="Error", content="Missing title or content")
+
+        payload = {
+            "title": title,
+            "content": content,
+            "status": "draft"
+        }
+
+        response = requests.post(
+            WORDPRESS_URL,
+            json=payload,
+            auth=(WORDPRESS_USER, WORDPRESS_APP_PASS)
+        )
+
+        if response.status_code == 201:
+            post = response.json()
+            return render_template(
+                "article.html",
+                title="Draft Posted!",
+                content=f"✅ Draft created successfully on WordPress.<br><br><a href='{post['link']}' target='_blank'>View Draft</a>"
+            )
+        else:
+            return render_template(
+                "article.html",
+                title="Error Posting to WordPress",
+                content=f"❌ Failed to create draft:<br><br>{response.text}"
+            )
+
+    except Exception as e:
+        print("[Publish error]", e)
+        return render_template(
+            "article.html",
+            title="Server Error",
+            content=f"An error occurred while posting to WordPress:<br>{e}"
+        )
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
