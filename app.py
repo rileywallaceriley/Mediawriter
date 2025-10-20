@@ -73,7 +73,7 @@ def home():
             'title': entry.title,
             'link': entry.link
         })
-        if len(stories) >= 10:
+        if len(stories) >= 20:
             break
 
     return render_template('index.html', stories=stories)
