@@ -23,9 +23,9 @@ client = OpenAI(
 RSS_FEED = os.getenv("RSS_FEED")
 
 # --- WordPress Configuration ---
-WORDPRESS_URL = os.getenv("https://aboveaveragehiphop.com/wp-json/wp/v2/posts") 
-WORDPRESS_USER = os.getenv("EX-P")
-WORDPRESS_APP_PASS = os.getenv("Amelia0923@")
+WORDPRESS_URL = "https://aboveaveragehiphop.com/wp-json/wp/v2/posts"
+WORDPRESS_USER = "EX-P"
+WORDPRESS_APP_PASS = "Amelia0923@"
 
 
 # --- Helper Function ---
