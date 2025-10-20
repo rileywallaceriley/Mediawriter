@@ -60,7 +60,7 @@ def home():
     stories = []
 
     now = datetime.utcnow()
-    window = now - timedelta(hours=48)
+    window = now - timedelta(hours=72)
 
     for entry in feed.entries:
         if hasattr(entry, 'published_parsed'):
