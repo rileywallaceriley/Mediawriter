@@ -25,7 +25,7 @@ RSS_FEED = os.getenv("RSS_FEED")
 # --- WordPress Configuration ---
 WORDPRESS_URL = "https://aboveaveragehiphop.com/wp-json/wp/v2/posts"
 WORDPRESS_USER = "EX-P"
-WORDPRESS_APP_PASS = "Amelia0923@"
+WORDPRESS_APP_PASS = "hRW4 sfle QV9l wq4w NzJH 6nqR"
 
 
 # --- Helper Function ---
